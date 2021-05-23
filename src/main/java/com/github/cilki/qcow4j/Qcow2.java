@@ -44,18 +44,6 @@ public class Qcow2 {
 		long cluster_offset = l2_table[l2_index];
 		return null;
 	}
-
-	private byte[] cluster_read(long cluster_index) throws IOException {
-
-		byte[] cluster = new byte[header.cluster_size()];
-
-		synchronized (image) {
-			image.seek(cluster_index * header.cluster_size());
-			image.read(cluster);
-		}
-
-		return cluster;
-	}
 	
 	private void snapshot_create() {
 		

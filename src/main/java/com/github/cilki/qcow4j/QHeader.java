@@ -31,36 +31,92 @@ public record QHeader(
 		// uint64_t snapshots_offset;
 		long snapshots_offset) {
 
-	public static QHeader parse(RandomAccessFile in) throws IOException, IllegalHeaderException {
+	public static QHeader read(FileChannel channel) throws IOException, IllegalHeaderException {
 
-		in.seek(0);
-		var header = new QHeader( //
-				in.readInt(), // magic
-				in.readInt(), // version
-				in.readLong(), // backing_file_offset
-				in.readInt(), // backing_file_size
-				in.readInt(), // cluster_bits
-				in.readLong(), // size
-				in.readInt(), // crypt_method
-				in.readInt(), // l1_size
-				in.readLong(), // l1_table_offset
-				in.readLong(), // refcount_table_offset
-				in.readInt(), // refcount_table_clusters
-				in.readInt(), // nb_snapshots
-				in.readLong() // snapshots_offset
+		var magic = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(magic) != Integer.BYTES)
+			throw new IOException("Failed to read: magic");
+
+		var version = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(version) != Integer.BYTES)
+			throw new IOException("Failed to read: version");
+
+		var backing_file_offset = ByteBuffer.allocate(Long.BYTES);
+		if (channel.read(backing_file_offset) != Long.BYTES)
+			throw new IOException("Failed to read: backing_file_offset");
+
+		var backing_file_size = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(backing_file_size) != Integer.BYTES)
+			throw new IOException("Failed to read: backing_file_size");
+
+		var backing_file_size = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(backing_file_size) != Integer.BYTES)
+			throw new IOException("Failed to read: backing_file_size");
+
+		var cluster_bits = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(cluster_bits) != Integer.BYTES)
+			throw new IOException("Failed to read: cluster_bits");
+
+		var size = ByteBuffer.allocate(Long.BYTES);
+		if (channel.read(size) != Long.BYTES)
+			throw new IOException("Failed to read: size");
+
+		var crypt_method = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(crypt_method) != Integer.BYTES)
+			throw new IOException("Failed to read: crypt_method");
+
+		var l1_size = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(l1_size) != Integer.BYTES)
+			throw new IOException("Failed to read: l1_size");
+
+		var l1_table_offset = ByteBuffer.allocate(Long.BYTES);
+		if (channel.read(l1_table_offset) != Long.BYTES)
+			throw new IOException("Failed to read: l1_table_offset");
+
+		var refcount_table_offset = ByteBuffer.allocate(Long.BYTES);
+		if (channel.read(refcount_table_offset) != Long.BYTES)
+			throw new IOException("Failed to read: refcount_table_offset");
+
+		var refcount_table_clusters = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(refcount_table_clusters) != Integer.BYTES)
+			throw new IOException("Failed to read: refcount_table_clusters");
+
+		var nb_snapshots = ByteBuffer.allocate(Integer.BYTES);
+		if (channel.read(nb_snapshots) != Integer.BYTES)
+			throw new IOException("Failed to read: nb_snapshots");
+
+		var snapshots_offset = ByteBuffer.allocate(Long.BYTES);
+		if (channel.read(snapshots_offset) != Long.BYTES)
+			throw new IOException("Failed to read: snapshots_offset");
+
+		// Validate magic
+		if (magic.getInt() != 0x514649fb) {
+			throw new IllegalHeaderException("magic", magic.getInt());
+		}
+
+		// Validate version
+		if (version.getInt() != 2 && version.getInt() != 3) {
+			throw new IllegalHeaderException("version", version.getInt());
+		}
+
+		return new QHeader( //
+				magic.getInt(), //
+				version.getInt(), //
+				backing_file_offset.getLong(), //
+				backing_file_size.getInt(), //
+				cluster_bits.getInt(), //
+				size.getLong(), //
+				crypt_method.getInt(), //
+				l1_size.getInt(), //
+				l1_table_offset.getLong(), //
+				refcount_table_offset.getLong(), //
+				refcount_table_clusters.getInt(), //
+				nb_snapshots.getInt(), //
+				snapshots_offset.getLong() //
 		);
+	}
 
-		if (header.magic() != 0x514649fb) {
-			throw new IllegalHeaderException("magic", header.magic());
-		}
-
-		if (header.version() != 2 && header.version() != 3) {
-			throw new IllegalHeaderException("version", header.version());
-		}
-
-		System.out.println("Parsed header: " + header);
-
-		return header;
+	public void write(FileChannel channel) throws IOException {
 
 	}
 

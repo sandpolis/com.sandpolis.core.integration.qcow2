@@ -15,7 +15,27 @@ public class SnapshotTable {
 			// uint64_t l1_table_offset;
 			long l1_table_offset,
 			// uint32_t l1_size;
-			int l1_size) {
+			int l1_size,
+			// uint16_t id_str_size;
+			short id_str_size,
+			// uint16_t name_size;
+			short name_size,
+			// uint32_t date_sec;
+			int date_sec,
+			// uint32_t date_nsec;
+			int date_nsec,
+			// uint64_t vm_clock_nsec;
+			long vm_clock_nsec,
+			// uint32_t vm_state_size;
+			int vm_state_size,
+			// uint32_t extra_data_size;
+			int extra_data_size,
+			// *uint8_t extra_data;
+			byte[] extra_data,
+			// *uint8_t id_str;
+			String id_str,
+			// *uint8_t name;
+			String name) {
 
 		public static Entry read(FileChannel channel) throws IOException {
 
@@ -28,12 +48,58 @@ public class SnapshotTable {
 				throw new IOException("Failed to read: l1_size");
 
 			var id_str_size = ByteBuffer.allocate(Short.BYTES);
-			if (channel.read(l1_size) != Short.BYTES)
+			if (channel.read(id_str_size) != Short.BYTES)
 				throw new IOException("Failed to read: id_str_size");
 
-			return new Entry(//
+			var name_size = ByteBuffer.allocate(Short.BYTES);
+			if (channel.read(name_size) != Short.BYTES)
+				throw new IOException("Failed to read: name_size");
+
+			var date_sec = ByteBuffer.allocate(Integer.BYTES);
+			if (channel.read(date_sec) != Integer.BYTES)
+				throw new IOException("Failed to read: date_sec");
+
+			var date_nsec = ByteBuffer.allocate(Integer.BYTES);
+			if (channel.read(date_nsec) != Integer.BYTES)
+				throw new IOException("Failed to read: date_nsec");
+
+			var vm_clock_nsec = ByteBuffer.allocate(Long.BYTES);
+			if (channel.read(vm_clock_nsec) != Long.BYTES)
+				throw new IOException("Failed to read: vm_clock_nsec");
+
+			var vm_state_size = ByteBuffer.allocate(Integer.BYTES);
+			if (channel.read(vm_state_size) != Integer.BYTES)
+				throw new IOException("Failed to read: vm_state_size");
+
+			var extra_data_size = ByteBuffer.allocate(Integer.BYTES);
+			if (channel.read(extra_data_size) != Integer.BYTES)
+				throw new IOException("Failed to read: extra_data_size");
+
+			var extra_data = ByteBuffer.allocate(extra_data_size.getInt());
+			if (channel.read(extra_data) != extra_data_size.getInt())
+				throw new IOException("Failed to read: extra_data");
+
+			var id_str = ByteBuffer.allocate(id_str_size.getShort());
+			if (channel.read(id_str) != id_str_size.getShort())
+				throw new IOException("Failed to read: id_str");
+
+			var name = ByteBuffer.allocate(name_size.getShort());
+			if (channel.read(name) != name_size.getShort())
+				throw new IOException("Failed to read: name");
+
+			return new Entry( //
 					l1_table_offset.getLong(), //
-					l1_size.getInt() //
+					l1_size.getInt(), //
+					id_str_size.getShort(), //
+					name_size.getShort(), //
+					date_sec.getInt(), //
+					date_nsec.getInt(), //
+					vm_clock_nsec.getLong(), //
+					vm_state_size.getInt(), //
+					extra_data_size.getInt(), //
+					extra_data.array(), //
+					new String(id_str.array()), //
+					new String(name.array()) //
 			);
 		}
 
@@ -41,6 +107,9 @@ public class SnapshotTable {
 
 			if (channel.write(ByteBuffer.allocate(Long.BYTES).putLong(l1_table_offset())) != Long.BYTES)
 				throw new IOException("Failed to write: l1_table_offset");
+
+			if (channel.write(ByteBuffer.allocate(Integer.BYTES).putInteger(l1_size())) != Integer.BYTES)
+				throw new IOException("Failed to write: l1_size");
 		}
 	}
 
@@ -74,10 +143,10 @@ public class SnapshotTable {
 			channel.write(l1_table, l1_table_offset);
 
 			// Write padding
-			// TODO
+			channel.write(ByteBuffer.allocate(), l1_table_offset + l1_table.capacity());
 
 			// Increment reference counts
-			// TODO
+			qcow2.refcount_table.increment_all();
 
 			// Create snapshot entry and write it to the table
 			var entry = new Entry(l1_table_offset, qcow2.header.l1_size());
