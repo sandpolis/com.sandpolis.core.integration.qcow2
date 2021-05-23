@@ -1,7 +1,8 @@
 package com.github.cilki.qcow4j;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 public record QHeader(
 		// uint32_t magic;
@@ -49,10 +50,6 @@ public record QHeader(
 		if (channel.read(backing_file_size) != Integer.BYTES)
 			throw new IOException("Failed to read: backing_file_size");
 
-		var backing_file_size = ByteBuffer.allocate(Integer.BYTES);
-		if (channel.read(backing_file_size) != Integer.BYTES)
-			throw new IOException("Failed to read: backing_file_size");
-
 		var cluster_bits = ByteBuffer.allocate(Integer.BYTES);
 		if (channel.read(cluster_bits) != Integer.BYTES)
 			throw new IOException("Failed to read: cluster_bits");
@@ -90,34 +87,51 @@ public record QHeader(
 			throw new IOException("Failed to read: snapshots_offset");
 
 		// Validate magic
-		if (magic.getInt() != 0x514649fb) {
-			throw new IllegalHeaderException("magic", magic.getInt());
+		if (magic.getInt(0) != 0x514649fb) {
+			throw new IllegalHeaderException("magic", magic.getInt(0));
 		}
 
 		// Validate version
-		if (version.getInt() != 2 && version.getInt() != 3) {
-			throw new IllegalHeaderException("version", version.getInt());
+		if (version.getInt(0) != 2 && version.getInt(0) != 3) {
+			throw new IllegalHeaderException("version", version.getInt(0));
 		}
 
 		return new QHeader( //
-				magic.getInt(), //
-				version.getInt(), //
-				backing_file_offset.getLong(), //
-				backing_file_size.getInt(), //
-				cluster_bits.getInt(), //
-				size.getLong(), //
-				crypt_method.getInt(), //
-				l1_size.getInt(), //
-				l1_table_offset.getLong(), //
-				refcount_table_offset.getLong(), //
-				refcount_table_clusters.getInt(), //
-				nb_snapshots.getInt(), //
-				snapshots_offset.getLong() //
+				magic.getInt(0), //
+				version.getInt(0), //
+				backing_file_offset.getLong(0), //
+				backing_file_size.getInt(0), //
+				cluster_bits.getInt(0), //
+				size.getLong(0), //
+				crypt_method.getInt(0), //
+				l1_size.getInt(0), //
+				l1_table_offset.getLong(0), //
+				refcount_table_offset.getLong(0), //
+				refcount_table_clusters.getInt(0), //
+				nb_snapshots.getInt(0), //
+				snapshots_offset.getLong(0) //
 		);
 	}
 
 	public void write(FileChannel channel) throws IOException {
 
+		try (var lock = channel.lock(0, header_length(), false)) {
+			channel.write(ByteBuffer.allocate(header_length()) //
+					.putInt(magic()) //
+					.putInt(version()) //
+					.putLong(backing_file_offset()) //
+					.putLong(backing_file_size()) //
+					.putInt(cluster_bits()) //
+					.putLong(size()) //
+					.putInt(crypt_method()) //
+					.putInt(l1_size()) //
+					.putLong(l1_table_offset()) //
+					.putLong(refcount_table_offset()) //
+					.putInt(refcount_table_clusters()) //
+					.putInt(nb_snapshots()) //
+					.putLong(snapshots_offset()) //
+					, 0);
+		}
 	}
 
 	public static class IllegalHeaderException extends Exception {

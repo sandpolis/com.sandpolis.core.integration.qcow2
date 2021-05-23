@@ -108,7 +108,7 @@ public class SnapshotTable {
 			if (channel.write(ByteBuffer.allocate(Long.BYTES).putLong(l1_table_offset())) != Long.BYTES)
 				throw new IOException("Failed to write: l1_table_offset");
 
-			if (channel.write(ByteBuffer.allocate(Integer.BYTES).putInteger(l1_size())) != Integer.BYTES)
+			if (channel.write(ByteBuffer.allocate(Integer.BYTES).putInt(l1_size())) != Integer.BYTES)
 				throw new IOException("Failed to write: l1_size");
 		}
 	}
@@ -143,13 +143,14 @@ public class SnapshotTable {
 			channel.write(l1_table, l1_table_offset);
 
 			// Write padding
-			channel.write(ByteBuffer.allocate(), l1_table_offset + l1_table.capacity());
+			channel.write(ByteBuffer.allocate(0 /* TODO */), l1_table_offset + l1_table.capacity());
 
 			// Increment reference counts
 			qcow2.refcount_table.increment_all();
 
 			// Create snapshot entry and write it to the table
-			var entry = new Entry(l1_table_offset, qcow2.header.l1_size());
+			var entry = new Entry(l1_table_offset, qcow2.header.l1_size(), (short) id.length(), (short) name.length(),
+					0, 0, 0, 0, 0, null, id, name);
 			entries.add(entry);
 			entry.write(channel);
 		}
