@@ -4,39 +4,87 @@ import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-public class RefcountTable {
+class RefcountTable {
 
-	private final Qcow2 qcow2;
+	public record RefcountTableEntry(long data) {
 
-	private final FileChannel channel;
-
-//    private final long[] entries;
-
-	public RefcountTable(Qcow2 qcow2) throws IOException {
-		this.qcow2 = qcow2;
-
-		this.channel = FileChannel.open(qcow2.file, READ, WRITE);
-		this.channel.position(qcow2.header.refcount_table_offset());
-
-		for (int i = 0; i < qcow2.header.refcount_table_clusters(); i++) {
-			;
+		public long offset() {
+			return data() & 0xfffffffffffffe00L;
 		}
 	}
 
-//	public long lookup_refcount(long image_offset) {
-//
-//		long refcount_block_entries = (qcow2.header.cluster_size() * 8) / refcount_bits;
-//
-//		refcount_block_index = (image_offset / qcow2.header.cluster_size()) % refcount_block_entries;
-//		refcount_table_index = (image_offset / qcow2.header.cluster_size()) / refcount_block_entries;
-//
-//		refcount_block = load_cluster(refcount_table[refcount_table_index]);
-//		return refcount_block[refcount_block_index];
-//	}
+	public record RefcountBlockEntry(long data) {
+
+		public long refcount() {
+			return data() & 0xffffL;
+		}
+	}
+
+	private final FileChannel channel;
+
+	private final Qcow2 qcow2;
+
+	private final RefcountTableEntry[] refcount_table;
+
+	public RefcountTable(Qcow2 qcow2) throws IOException {
+		this.qcow2 = qcow2;
+		this.channel = FileChannel.open(qcow2.file, READ, WRITE);
+
+		refcount_table = readRefcountTable();
+	}
 
 	public void increment_all() {
+		// TODO
+	}
 
+	public long lookup_refcount(long image_offset) throws IOException {
+
+		long refcount_block_entries = (qcow2.header.cluster_size() * 8) / qcow2.header.refcount_bits();
+
+		int refcount_block_index = (int) ((image_offset / qcow2.header.cluster_size()) % refcount_block_entries);
+		int refcount_table_index = (int) ((image_offset / qcow2.header.cluster_size()) / refcount_block_entries);
+
+		var refcount_block = readRefcountBlock(refcount_table[refcount_table_index]);
+		return refcount_block[refcount_block_index].refcount();
+	}
+
+	private RefcountBlockEntry[] readRefcountBlock(RefcountTableEntry refcount_table_entry) throws IOException {
+
+		var block_buffer = ByteBuffer.allocateDirect(qcow2.header.cluster_size());
+		if (channel.read(block_buffer, refcount_table_entry.offset()) != qcow2.header.cluster_size()) {
+			throw new IOException();
+		}
+
+		var table = new RefcountBlockEntry[(qcow2.header.cluster_size() * 8) / qcow2.header.refcount_bits()];
+
+		block_buffer.position(0);
+		for (int i = 0; i < table.length; i++) {
+			table[i] = new RefcountBlockEntry(block_buffer.getLong());
+		}
+
+		return table;
+	}
+
+	private RefcountTableEntry[] readRefcountTable() throws IOException {
+
+		var table_buffer = ByteBuffer
+				.allocateDirect(qcow2.header.refcount_table_clusters() * qcow2.header.cluster_size());
+		if (channel.read(table_buffer, qcow2.header.refcount_table_offset()) != qcow2.header.refcount_table_clusters()
+				* qcow2.header.cluster_size()) {
+			throw new IOException();
+		}
+
+		var table = new RefcountTableEntry[qcow2.header.refcount_table_clusters() * qcow2.header.cluster_size()
+				/ Long.BYTES];
+
+		table_buffer.position(0);
+		for (int i = 0; i < table.length; i++) {
+			table[i] = new RefcountTableEntry(table_buffer.getLong());
+		}
+
+		return table;
 	}
 }

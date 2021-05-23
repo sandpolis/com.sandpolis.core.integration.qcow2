@@ -4,32 +4,80 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
+/**
+ * Represents a qcow2 header structure.
+ */
 public record QHeader(
-		// uint32_t magic;
+
+		/**
+		 * The format's magic number.
+		 */
 		int magic,
-		// uint32_t version;
+
+		/**
+		 * The format's version number.
+		 */
 		int version,
-		// uint64_t backing_file_offset;
+
+		/**
+		 * Offset into the image file at which the backing file name is stored.
+		 */
 		long backing_file_offset,
-		// uint32_t backing_file_size;
+
+		/**
+		 * Length of the backing file name in bytes. Must not be longer than 1023 bytes.
+		 * Undefined if the image doesn't have a backing file.
+		 */
 		int backing_file_size,
-		// uint32_t cluster_bits;
+
+		/**
+		 * Number of bits that are used for addressing an offset within a cluster (1 <<
+		 * cluster_bits is the cluster size). Must not be less than 9 (i.e. 512 byte
+		 * clusters).
+		 */
 		int cluster_bits,
-		// uint64_t size;
+
+		/**
+		 * Virtual disk size in bytes.
+		 */
 		long size,
-		// uint32_t crypt_method;
+
+		/**
+		 * Cluster encryption method.
+		 */
 		int crypt_method,
-		// uint32_t l1_size;
+
+		/**
+		 * Number of entries in the active L1 table.
+		 */
 		int l1_size,
-		// uint64_t l1_table_offset;
+
+		/**
+		 * Offset into the image file at which the active L1 table starts. Must be
+		 * aligned to a cluster boundary.
+		 */
 		long l1_table_offset,
-		// uint64_t refcount_table_offset;
+
+		/**
+		 * Offset into the image file at which the refcount table starts. Must be
+		 * aligned to a cluster boundary.
+		 */
 		long refcount_table_offset,
-		// uint32_t refcount_table_clusters;
+
+		/**
+		 * Number of clusters that the refcount table occupies.
+		 */
 		int refcount_table_clusters,
-		// uint32_t nb_snapshots;
+
+		/**
+		 * Number of snapshots contained in the image.
+		 */
 		int nb_snapshots,
-		// uint64_t snapshots_offset;
+
+		/**
+		 * Offset into the image file at which the snapshot table starts. Must be
+		 * aligned to a cluster boundary.
+		 */
 		long snapshots_offset) {
 
 	public static QHeader read(FileChannel channel) throws IOException, IllegalHeaderException {
@@ -140,15 +188,31 @@ public record QHeader(
 		}
 	}
 
+	/**
+	 * @return The size of a cluster in bytes.
+	 */
 	public int cluster_size() {
 		return 1 << cluster_bits();
 	}
 
+	/**
+	 * @return The number of entries in an L2 table.
+	 */
 	public int l2_entries() {
 		return cluster_size() / Long.BYTES;
 	}
 
+	/**
+	 * @return The total size of the header in bytes.
+	 */
 	public int header_length() {
 		return 72;
+	}
+
+	/**
+	 * @return The width of a refcount block entry.
+	 */
+	public int refcount_bits() {
+		return 16;
 	}
 }
