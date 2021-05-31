@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 class RefcountTable {
 
 	public record RefcountTableEntry(long data) {
@@ -22,6 +25,8 @@ class RefcountTable {
 			return data() & 0xffffL;
 		}
 	}
+
+	private static final Logger log = LoggerFactory.getLogger(RefcountTable.class);
 
 	private final FileChannel channel;
 
@@ -69,6 +74,10 @@ class RefcountTable {
 	}
 
 	private RefcountTableEntry[] readRefcountTable() throws IOException {
+
+		log.debug("Loading refcount table ({} bytes) from offset: 0x{}",
+				qcow2.header.refcount_table_clusters() * qcow2.header.cluster_size(),
+				Long.toHexString(qcow2.header.refcount_table_offset()));
 
 		var table_buffer = ByteBuffer
 				.allocateDirect(qcow2.header.refcount_table_clusters() * qcow2.header.cluster_size());
