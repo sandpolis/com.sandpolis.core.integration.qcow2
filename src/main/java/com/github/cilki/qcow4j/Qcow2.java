@@ -4,20 +4,20 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.cilki.qcow4j.QHeader.IllegalHeaderException;
 
-public class Qcow2 {
+public class Qcow2 implements Closeable {
 
 	private static final Logger log = LoggerFactory.getLogger(Qcow2.class);
 
@@ -79,10 +79,34 @@ public class Qcow2 {
 		this.header.write(channel);
 	}
 
+	@Override
+	public void close() throws IOException {
+		channel.close();
+	}
+
+	/**
+	 * Copy the bytes at the given source to the destination. This method may reuse
+	 * existing clusters when possible and therefore can be more efficient than a
+	 * {@link #read(ByteBuffer)} followed by a {@link #write(ByteBuffer)}.
+	 * 
+	 * @param source      The source offset
+	 * @param size        The number of bytes to copy
+	 * @param destination The destination offset
+	 * @return The number of bytes copied
+	 */
+	public int copy(long source, long size, long destination) throws IOException {
+		// TODO
+		return -1;
+	}
+
 	/**
 	 * @return A new {@code InputStream} containing the virtual data.
 	 */
 	public QcowInputStream newInputStream() {
+		if (!channel.isOpen()) {
+			throw new IllegalStateException("The channel is closed");
+		}
+
 		log.trace("Client request for new input stream");
 		return new QcowInputStream(this);
 	}
@@ -107,9 +131,13 @@ public class Qcow2 {
 	}
 
 	public int read(ByteBuffer data, long offset) throws IOException {
-		if (log.isTraceEnabled())
+		if (!channel.isOpen()) {
+			throw new IllegalStateException("The channel is closed");
+		}
+		if (log.isTraceEnabled()) {
 			log.trace("Client read request for {} bytes at virtual offset: 0x{}", data.limit(),
 					Long.toHexString(offset));
+		}
 
 		return cluster_table.read(data, offset);
 	}
@@ -123,9 +151,13 @@ public class Qcow2 {
 	}
 
 	public int write(ByteBuffer data, long offset) {
-		if (log.isTraceEnabled())
+		if (!channel.isOpen()) {
+			throw new IllegalStateException("The channel is closed");
+		}
+		if (log.isTraceEnabled()) {
 			log.trace("Client write request for {} bytes at virtual offset: 0x{}", data.limit(),
 					Long.toHexString(offset));
+		}
 
 		return cluster_table.write(data, offset);
 	}
