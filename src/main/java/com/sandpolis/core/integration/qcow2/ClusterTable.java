@@ -1,4 +1,4 @@
-package com.github.cilki.qcow4j;
+package com.sandpolis.core.integration.qcow2;
 
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;

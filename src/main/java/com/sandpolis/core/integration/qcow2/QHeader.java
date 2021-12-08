@@ -1,4 +1,4 @@
-package com.github.cilki.qcow4j;
+package com.sandpolis.core.integration.qcow2;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
