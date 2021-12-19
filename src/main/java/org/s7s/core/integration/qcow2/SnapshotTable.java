@@ -1,4 +1,12 @@
-package com.sandpolis.core.integration.qcow2;
+//============================================================================//
+//                                                                            //
+//            Copyright © 2015 - 2022 Sandpolis Software Foundation           //
+//                                                                            //
+//  This source file is subject to the terms of the Mozilla Public License    //
+//  version 2. You may not use this file except in compliance with the MPLv2. //
+//                                                                            //
+//============================================================================//
+package org.s7s.core.integration.qcow2;
 
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -187,7 +195,7 @@ class SnapshotTable {
 
 	/**
 	 * Revert the state of the image to the given snapshot.
-	 * 
+	 *
 	 * @param id The ID of the snapshot to apply
 	 * @throws IOException
 	 */
@@ -211,7 +219,7 @@ class SnapshotTable {
 
 	/**
 	 * Create a new snapshot from the image's current state.
-	 * 
+	 *
 	 * @param id   The ID of the new snapshot
 	 * @param name The name of the new snapshot
 	 * @throws IOException

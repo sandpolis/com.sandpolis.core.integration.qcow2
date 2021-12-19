@@ -1,4 +1,12 @@
-package com.sandpolis.core.integration.qcow2;
+//============================================================================//
+//                                                                            //
+//            Copyright © 2015 - 2022 Sandpolis Software Foundation           //
+//                                                                            //
+//  This source file is subject to the terms of the Mozilla Public License    //
+//  version 2. You may not use this file except in compliance with the MPLv2. //
+//                                                                            //
+//============================================================================//
+package org.s7s.core.integration.qcow2;
 
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
@@ -15,7 +23,7 @@ import java.nio.file.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sandpolis.core.integration.qcow2.QHeader.IllegalHeaderException;
+import org.s7s.core.integration.qcow2.QHeader.IllegalHeaderException;
 
 public class Qcow2 implements Closeable {
 
@@ -88,7 +96,7 @@ public class Qcow2 implements Closeable {
 	 * Copy the bytes at the given source to the destination. This method may reuse
 	 * existing clusters when possible and therefore can be more efficient than a
 	 * {@link #read(ByteBuffer)} followed by a {@link #write(ByteBuffer)}.
-	 * 
+	 *
 	 * @param source      The source offset
 	 * @param size        The number of bytes to copy
 	 * @param destination The destination offset
