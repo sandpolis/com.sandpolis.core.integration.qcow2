@@ -9,7 +9,7 @@
 
 plugins {
 	id("java-library")
-	kotlin("multiplatform") version "1.6.10"
+	kotlin("multiplatform") version "1.7.20"
 	id("org.s7s.build.module")
 	id("org.s7s.build.publish")
 }
